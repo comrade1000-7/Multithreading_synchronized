@@ -16,6 +16,15 @@ public class Main {
         return route.toString();
     }
 
+    public static void findMax () {
+        Map.Entry<Integer, Integer> maxEntry = sizeToFreq.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
+        assert maxEntry != null;
+        System.out.println("Самое частое количество повторений " + maxEntry.getKey()
+                + " (встретилось " + maxEntry.getValue() + " раз)");
+    }
+
     public static int counter (String string) {
         int countR = 0;
         String[] split = string.split("");
@@ -25,13 +34,27 @@ public class Main {
         return countR;
     }
 
-    public static void main(String[] args) {
-        int allRoutes = 1000;
+    public static void main(String[] args) throws InterruptedException {
+        int allRoutes = 10;
 
-        ExecutorService executorService = Executors.newFixedThreadPool(allRoutes);
+        Thread findMaxThread = new Thread(() -> {
+            while (!Thread.interrupted()) {
+                synchronized (sizeToFreq) {
+                    try {
+                        sizeToFreq.wait();
+                    } catch (InterruptedException e) {
+                        //throw new RuntimeException(e);
+                        break;
+                    }
+                    findMax();
+                }
+            }
+        });
+        findMaxThread.start();
+        //ExecutorService executorService = Executors.newFixedThreadPool(allRoutes);
 
         for (int i = 0; i < allRoutes; i++) {
-            executorService.submit(() -> {
+            Thread generateTread = new Thread(() -> {
                 String route = generateRoute("RLRFR", 100);
                 int count = counter(route);
                 System.out.println(route + " " + count);
@@ -41,21 +64,19 @@ public class Main {
                     } else {
                         sizeToFreq.put(count, sizeToFreq.get(count) + 1);
                     }
+                    sizeToFreq.notify();
                 }
-                return route;
             });
+            generateTread.start();
+            generateTread.join();
         }
+        findMaxThread.interrupt();
 
-        Map.Entry<Integer, Integer> maxEntry = sizeToFreq.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .orElse(null);
 
-        System.out.println("Самое частое количество повторений " + maxEntry.getKey()
-                + " (встретилось " + maxEntry.getValue() + " раз)");
-        System.out.println("Другие размеры: ");
+        /*System.out.println("Другие размеры: ");
 
         for (Map.Entry<Integer, Integer> entry: sizeToFreq.entrySet()) {
             System.out.println("- " + entry.getKey() + " (" + entry.getValue() + " раз)");
-        }
+        }*/
     }
 }

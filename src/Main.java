@@ -1,8 +1,7 @@
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
 
 public class Main {
     public static final Map<Integer, Integer> sizeToFreq = new HashMap<>();
@@ -35,7 +34,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        int allRoutes = 10;
+        int allRoutes = 1000;
 
         Thread findMaxThread = new Thread(() -> {
             while (!Thread.interrupted()) {
@@ -43,7 +42,6 @@ public class Main {
                     try {
                         sizeToFreq.wait();
                     } catch (InterruptedException e) {
-                        //throw new RuntimeException(e);
                         break;
                     }
                     findMax();
@@ -51,19 +49,18 @@ public class Main {
             }
         });
         findMaxThread.start();
-        //ExecutorService executorService = Executors.newFixedThreadPool(allRoutes);
 
         for (int i = 0; i < allRoutes; i++) {
             Thread generateTread = new Thread(() -> {
                 String route = generateRoute("RLRFR", 100);
                 int count = counter(route);
-                System.out.println(route + " " + count);
                 synchronized (sizeToFreq) {
                     if (!sizeToFreq.containsKey(count)) {
                         sizeToFreq.put(count, 1);
                     } else {
                         sizeToFreq.put(count, sizeToFreq.get(count) + 1);
                     }
+                    System.out.println(route + " " + count);
                     sizeToFreq.notify();
                 }
             });
@@ -71,12 +68,5 @@ public class Main {
             generateTread.join();
         }
         findMaxThread.interrupt();
-
-
-        /*System.out.println("Другие размеры: ");
-
-        for (Map.Entry<Integer, Integer> entry: sizeToFreq.entrySet()) {
-            System.out.println("- " + entry.getKey() + " (" + entry.getValue() + " раз)");
-        }*/
     }
 }
